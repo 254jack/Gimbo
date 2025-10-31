@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Preview Certificate{% endblock %}
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow p-4">
+    <h3 class="mb-4">Preview Certificate</h3>
+    <p><strong>Customer Name:</strong> {{ gen.customer_name }}</p>
+    <p><strong>Reg No:</strong> {{ gen.reg_no }}</p>
+    <p><strong>Engine No:</strong> {{ gen.engine_no }}</p>
+    <p><strong>Chassis No:</strong> {{ gen.chassis_no }}</p>
+    <p><strong>Color:</strong> {{ gen.color }}</p>
+    <p><strong>Body Type:</strong> {{ gen.body_type }}</p>
+    <p><strong>Insurance Value:</strong> {{ gen.insurance_value }}</p>
+
+    <hr>
+    <h5>Download Options:</h5>
+    <a href="{% url 'certificates:download' gen.pk 'docx' %}" class="btn btn-primary me-2">
+      Download DOCX
+    </a>
+    {% if gen.pdf_file %}
+    <a href="{% url 'certificates:download' gen.pk 'pdf' %}" class="btn btn-danger">
+      Download PDF
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

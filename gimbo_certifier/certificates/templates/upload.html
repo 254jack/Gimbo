@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Upload Template | Gimbo{% endblock %}
+{% block content %}
+<div class="card shadow p-4">
+    <h3 class="mb-4">Upload New Certificate Template</h3>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary w-100">Upload Template</button>
+    </form>
+
+    {% if template %}
+        <hr>
+        <h5>Template Uploaded: <strong>{{ template.name }}</strong></h5>
+        <p><a href="{{ template.file.url }}" target="_blank">Download Template</a></p>
+    {% endif %}
+
+    {% if placeholders %}
+        <hr>
+        <h5>Detected Placeholders</h5>
+        <ul class="list-group">
+            {% for var in placeholders %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {{ var }}
+                    <span class="badge bg-secondary">field</span>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</div>
+{% endblock %}

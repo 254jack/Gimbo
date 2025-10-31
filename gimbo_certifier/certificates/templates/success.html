@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Certificate Generated | Gimbo{% endblock %}
+{% block content %}
+<div class="card shadow p-4 text-center">
+    <h3>Certificate Successfully Generated</h3>
+    <p><strong>{{ gen.customer_name }}</strong> — {{ gen.reg_no }}</p>
+
+    <div class="mt-4">
+        <a href="{% url 'certificates:download' gen.pk %}" class="btn btn-outline-primary">Download DOCX</a>
+        {% if gen.pdf_file %}
+        <a href="{% url 'certificates:download' gen.pk 'pdf' %}" class="btn btn-outline-success">Download PDF</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
