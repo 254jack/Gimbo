@@ -13,4 +13,5 @@ urlpatterns = [
     path('download/<int:pk>/', views.download_generated_view, name='download_docx'),
     path('preview/<int:pk>/', views.preview_view, name='preview'),
     path('download/<int:pk>/<str:filetype>/', views.download_generated_view, name='download'),
+   
 ]

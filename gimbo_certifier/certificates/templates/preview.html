@@ -3,6 +3,7 @@
 {% block content %}
 <div class="container mt-5">
   <div class="card shadow p-4">
+
     <h3 class="mb-4">Preview Certificate</h3>
     <p><strong>Customer Name:</strong> {{ gen.customer_name }}</p>
     <p><strong>Reg No:</strong> {{ gen.reg_no }}</p>
@@ -13,6 +14,15 @@
     <p><strong>Insurance Value:</strong> {{ gen.insurance_value }}</p>
 
     <hr>
+    <div class="row">
+      <div class="col-md-8">
+    <p style="color: tomato;">After downloading the file, click on the reload button to resume to upload page</p>
+      </div>
+      <div class="col-md-4">
+    <a class="btn " style="border-radius: 5px; background-color: rgb(12, 190, 245); color: white; width: 50%;" href="/">Reload</a>
+
+      </div>
+    </div>
     <h5>Download Options:</h5>
     <a href="{% url 'certificates:download' gen.pk 'docx' %}" class="btn btn-primary me-2">
       Download DOCX

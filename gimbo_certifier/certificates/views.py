@@ -11,6 +11,8 @@ from docxtpl import DocxTemplate
 from docx2pdf import convert
 from .models import UploadedPDF, GeneratedCertificate
 from .forms import UploadFileForm
+from django.contrib import messages
+from datetime import datetime,timedelta,time,date
 from .utils import extract_text_from_pdf, parse_thamini_pdf_text
 
 
@@ -41,6 +43,7 @@ def upload_pdf_view(request):
     Extract values, fill placeholders, generate files,
     then redirect to preview screen before downloading.
     """
+
     if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
@@ -54,7 +57,7 @@ def upload_pdf_view(request):
             if not docx_file.name.lower().endswith('.docx'):
                 return HttpResponse("Invalid DOCX file format.", status=400)
 
-            # --- Save uploaded PDF ---
+            # --- Save uploaded PDF temporarily ---
             up = form.save(commit=False)
             up.original_filename = pdf_file.name
             up.save()
@@ -81,7 +84,38 @@ def upload_pdf_view(request):
             except Exception as e:
                 return HttpResponse(f"Error reading PDF: {e}", status=500)
 
-            # --- Render DOCX with parsed data ---
+            # ------------------------------------------------------------------
+            # ✨ Enhance parsed data: capitalization, certificate number, dates
+            # ------------------------------------------------------------------
+            # Capitalize certain fields
+            for field in ['customer_name', 'reg_no', 'engine_no', 'chassis_no', 'color', 'body_type']:
+                val = parsed_data.get(field)
+                if val:
+                    parsed_data[field] = str(val).upper()
+
+            # Generate certificate number if missing
+            # --- Auto-increment certificate number ---
+            latest = GeneratedCertificate.objects.order_by('-certificate_number').first()
+            if latest and latest.certificate_number:
+                next_num = latest.certificate_number + 1
+            else:
+                next_num = 830
+            parsed_data['certificate_number'] = next_num
+
+
+            today = date.today()
+            expiry_date = today + timedelta(days=365)
+            
+            if not parsed_data.get('certificate_date'):
+                parsed_data['certificate_date'] = today.isoformat()
+            if not parsed_data.get('inspection_date'):
+                parsed_data['inspection_date'] = today.isoformat()
+            if not parsed_data.get('expiry_date'):
+                parsed_data['expiry_date'] = expiry_date.isoformat()
+
+            # ------------------------------------------------------------------
+            # Render certificate DOCX
+            # ------------------------------------------------------------------
             tpl = DocxTemplate(docx_path)
             placeholders = extract_placeholders_from_docx(docx_path)
             for key in placeholders:
@@ -92,13 +126,12 @@ def upload_pdf_view(request):
 
             output_dir = os.path.join(settings.MEDIA_ROOT, "generated")
             os.makedirs(output_dir, exist_ok=True)
-
             timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
             base_filename = f"{parsed_data.get('reg_no', 'CERT')}_{timestamp}"
             docx_output_path = os.path.join(output_dir, f"{base_filename}.docx")
             tpl.save(docx_output_path)
 
-            # --- Convert DOCX → PDF (if possible) ---
+            # --- Convert DOCX → PDF ---
             pdf_output_path = docx_output_path.replace(".docx", ".pdf")
             try:
                 convert(docx_output_path, pdf_output_path)
@@ -116,33 +149,49 @@ def upload_pdf_view(request):
                 color=parsed_data.get('color'),
                 body_type=parsed_data.get('body_type'),
                 insurance_value=parsed_data.get('insurance_value'),
+                certificate_number=parsed_data.get('certificate_number'),
+                certificate_date=today,
+                expiry_date = expiry_date
             )
+            gen.save()
 
-            # Save DOCX
+            # Save DOCX and PDF
             with open(docx_output_path, "rb") as f:
                 gen.docx_file.save(os.path.basename(docx_output_path), ContentFile(f.read()))
-
-            # Save PDF (optional)
             if pdf_output_path and os.path.exists(pdf_output_path):
                 with open(pdf_output_path, "rb") as f:
                     gen.pdf_file.save(os.path.basename(pdf_output_path), ContentFile(f.read()))
-
             gen.save()
+
+            # Mark upload processed and cleanup temp files
             up.processed = True
             up.save()
+            for path in [pdf_path, docx_path]:
+                try:
+                    if path and os.path.exists(path):
+                        os.remove(path)
+                except Exception as e:
+                    print(f"Cleanup failed for {path}: {e}")
+            up.file.delete(save=False)
 
-            # --- Clean temp ---
-            try:
-                os.remove(docx_path)
-            except FileNotFoundError:
-                pass
-
-            # Redirect to preview page
+            # Redirect to preview
             return redirect('certificates:preview', pk=gen.pk)
+
     else:
         form = UploadFileForm()
 
     return render(request, 'upload.html', {'form': form})
+
+# Clean generated files older than 1 day
+import glob, time
+now = time.time()
+generated_dir = os.path.join(settings.MEDIA_ROOT, "generated")
+for f in glob.glob(os.path.join(generated_dir, "*")):
+    if os.stat(f).st_mtime < now - 86400:  # older than 1 day
+        try:
+            os.remove(f)
+        except Exception as e:
+            print(f"Old file cleanup failed for {f}: {e}")
 
 
 # -------------------------------------------------------------------------
