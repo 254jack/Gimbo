@@ -3,7 +3,6 @@ from django.utils import timezone
 import os
 from datetime import date, timedelta
 
-# 🗂 Helper for naming uploaded files
 def upload_path(instance, filename):
     timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
     return f"uploads/{timestamp}_{filename}"
@@ -18,7 +17,6 @@ def template_upload_path(instance, filename):
     return f"templates/{timestamp}_{filename}"
 
 
-# 🧩 1️⃣ UploadedPDF
 class UploadedPDF(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
     file = models.FileField(upload_to=upload_path)
@@ -31,10 +29,9 @@ class UploadedPDF(models.Model):
         return self.original_filename
 
 
-# 🧩 2️⃣ CertificateTemplate
 class CertificateTemplate(models.Model):
     name = models.CharField(max_length=255, default="Certificate Template")
-    file = models.FileField(upload_to=template_upload_path)
+    file = models.FileField(upload_to=template_upload_path, blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     placeholders = models.JSONField(null=True, blank=True)
 
@@ -43,36 +40,31 @@ class CertificateTemplate(models.Model):
 
     class Meta:
         ordering = ['-uploaded_at']
-
-
-# 🧩 3️⃣ GeneratedCertificate
 class GeneratedCertificate(models.Model):
     uploaded_pdf = models.ForeignKey(
-        UploadedPDF,
+        'UploadedPDF',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='certificates'
     )
     template_used = models.ForeignKey(
-        CertificateTemplate,
+        'CertificateTemplate',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='generated_certificates'
     )
 
-    # ✅ Separate file fields
     docx_file = models.FileField(upload_to=generated_doc_path, null=True, blank=True)
     pdf_file = models.FileField(upload_to=generated_doc_path, null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     certificate_date = models.DateField(default=timezone.now)
-    # ✅ New Fields
-    certificate_number = models.PositiveIntegerField(null=True,blank=True, editable=False)
+    certificate_number = models.PositiveIntegerField(null=True, blank=True, editable=False)
     issue_date = models.DateField(default=timezone.now)
 
-    # Extracted & populated fields
+    destination = models.CharField(max_length=255, blank=True, null=True)
     customer_name = models.CharField(max_length=255, blank=True, null=True)
     reg_no = models.CharField(max_length=50, blank=True, null=True)
     engine_no = models.CharField(max_length=100, blank=True, null=True)
@@ -82,8 +74,20 @@ class GeneratedCertificate(models.Model):
     insurance_value = models.CharField(max_length=50, blank=True, null=True)
     expiry_date = models.DateField(default=date.today() + timedelta(days=365))
 
+    imei_1 = models.CharField(
+        max_length=15,
+        blank=True,
+        null=True,
+        help_text="Tracker IMEI number 1 (max 15 chars)"
+    )
+    imei_2 = models.CharField(
+        max_length=15,
+        blank=True,
+        null=True,
+        help_text="Tracker IMEI number 2 (max 15 chars)"
+    )
+
     def save(self, *args, **kwargs):
-    # 🧾 Auto-increment certificate number
         if not self.certificate_number:
             last_cert = GeneratedCertificate.objects.order_by('-certificate_number').first()
             if last_cert and last_cert.certificate_number is not None:
@@ -91,14 +95,15 @@ class GeneratedCertificate(models.Model):
             else:
                 self.certificate_number = 1
 
-        # 📅 Default certificate date
         if not self.certificate_date:
-            from django.utils import timezone
             self.certificate_date = timezone.now().date()
 
-        # 🔠 Capitalize text fields (safe check for None)
         if self.customer_name:
             self.customer_name = self.customer_name.upper()
+        if self.destination:
+            if isinstance(self.destination, list):
+                self.destination = " ".join(self.destination[:2])
+            self.destination = self.destination.upper()
         if self.reg_no:
             self.reg_no = self.reg_no.upper()
         if self.engine_no:
@@ -114,8 +119,6 @@ class GeneratedCertificate(models.Model):
 
         super().save(*args, **kwargs)
 
-
-    # 🧹 Auto-delete files when record is removed
     def delete(self, *args, **kwargs):
         if self.docx_file and os.path.isfile(self.docx_file.path):
             os.remove(self.docx_file.path)

@@ -14,5 +14,5 @@ class CertificateTemplateAdmin(admin.ModelAdmin):
 
 @admin.register(GeneratedCertificate)
 class GeneratedCertificateAdmin(admin.ModelAdmin):
-    list_display = ('customer_name', 'reg_no', 'created_at')
+    list_display = ('customer_name', 'reg_no', 'created_at','destination')
     search_fields = ('customer_name', 'reg_no')

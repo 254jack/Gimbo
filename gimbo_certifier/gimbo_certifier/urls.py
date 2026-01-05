@@ -5,5 +5,5 @@ from django.shortcuts import redirect
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('certificates/', include('certificates.urls')),
-    path('', lambda request: redirect('certificates:upload')),  
+    path('', lambda request: redirect('certificates:unified_upload')),  
 ]

@@ -1,37 +1,109 @@
 {% extends "base.html" %}
-{% block title %}Preview Certificate{% endblock %}
+
+{% block title %}Certificate Preview{% endblock %}
+
 {% block content %}
 <div class="container mt-5">
-  <div class="card shadow p-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10 col-sm-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Certificate Preview</h3>
+                </div>
+                <div class="card-body">
 
-    <h3 class="mb-4">Preview Certificate</h3>
-    <p><strong>Customer Name:</strong> {{ gen.customer_name }}</p>
-    <p><strong>Reg No:</strong> {{ gen.reg_no }}</p>
-    <p><strong>Engine No:</strong> {{ gen.engine_no }}</p>
-    <p><strong>Chassis No:</strong> {{ gen.chassis_no }}</p>
-    <p><strong>Color:</strong> {{ gen.color }}</p>
-    <p><strong>Body Type:</strong> {{ gen.body_type }}</p>
-    <p><strong>Insurance Value:</strong> {{ gen.insurance_value }}</p>
+                    <!-- Certificate Info -->
+                    <table class="table table-bordered table-striped">
+                        <tbody>
+                            <tr>
+                                <th scope="row">Certificate Number</th>
+                                <td>{{ gen.certificate_number }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Customer Name</th>
+                                <td>{{ gen.customer_name }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Destination</th>
+                                <td>{{ gen.destination }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Registration Number</th>
+                                <td>{{ gen.reg_no }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Engine Number</th>
+                                <td>{{ gen.engine_no }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Chassis Number</th>
+                                <td>{{ gen.chassis_no }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Color</th>
+                                <td>{{ gen.color }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Body Type</th>
+                                <td>{{ gen.body_type }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Certificate Date</th>
+                                <td>{{ gen.certificate_date }}</td>
+                            </tr>
+                            {% if gen.expiry_date %}
+                            <tr>
+                                <th scope="row">Expiry Date</th>
+                                <td>{{ gen.expiry_date }}</td>
+                            </tr>
+                            {% endif %}
+                            <tr>
+                                <th scope="row">IMEIs</th>
+                                <td>
+                                    {{ gen.imei_1 }}<br>
+                                    {{ gen.imei_2 }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
 
-    <hr>
-    <div class="row">
-      <div class="col-md-8">
-    <p style="color: tomato;">After downloading the file, click on the reload button to resume to upload page</p>
-      </div>
-      <div class="col-md-4">
-    <a class="btn " style="border-radius: 5px; background-color: rgb(12, 190, 245); color: white; width: 50%;" href="/">Reload</a>
+                    <!-- IMEI Form -->
+                    <form method="post" class="mb-3">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                {{ form.imei_1.label_tag }}
+                                {{ form.imei_1 }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.imei_2.label_tag }}
+                                {{ form.imei_2 }}
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary mt-3">Save IMEIs</button>
+                    </form>
 
-      </div>
+                    <!-- Download Buttons -->
+                    <div class="d-flex gap-3 mt-4">
+                        {% if gen.docx_file %}
+                        <a href="{% url 'certificates:download' gen.pk 'docx' %}" class="btn btn-success flex-fill">
+                            Download DOCX
+                        </a>
+                        {% endif %}
+                        {% if gen.pdf_file %}
+                        <a href="{% url 'certificates:download' gen.pk 'pdf' %}" class="btn btn-danger flex-fill">
+                            Download PDF
+                        </a>
+                        {% endif %}
+                    </div>
+
+                    <div class="mt-3">
+                        <small class="text-muted">All certificates are stored securely and can be downloaded anytime.</small>
+                    </div>
+
+                </div>
+            </div>
+        </div>
     </div>
-    <h5>Download Options:</h5>
-    <a href="{% url 'certificates:download' gen.pk 'docx' %}" class="btn btn-primary me-2">
-      Download DOCX
-    </a>
-    {% if gen.pdf_file %}
-    <a href="{% url 'certificates:download' gen.pk 'pdf' %}" class="btn btn-danger">
-      Download PDF
-    </a>
-    {% endif %}
-  </div>
 </div>
 {% endblock %}

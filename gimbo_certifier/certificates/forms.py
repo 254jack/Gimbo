@@ -1,5 +1,5 @@
 from django import forms
-from .models import UploadedPDF, CertificateTemplate
+from .models import UploadedPDF, CertificateTemplate,GeneratedCertificate
 
 
 # 🧩 1️⃣ Combined upload form: PDF + DOCX
@@ -12,25 +12,12 @@ class UploadFileForm(forms.ModelForm):
 
     class Meta:
         model = UploadedPDF
-        fields = ['file']  # file will be the Thamini PDF
+        fields = ['file'] 
         labels = {
             'file': 'Thamini PDF File',
         }
 
-
-# 🧩 2️⃣ Optional: simple form if you ever want to upload PDFs alone
-class UploadPDFForm(forms.ModelForm):
-    class Meta:
-        model = UploadedPDF
-        fields = ['file']
-        labels = {
-            'file': 'Upload Thamini PDF File',
-        }
-
-
-# 🧩 3️⃣ Form for reviewing and editing parsed data before generating the certificate
 class EditParsedDataForm(forms.Form):
-    # These fields should match what appears in your Word template placeholders
     customer_name = forms.CharField(max_length=255, required=True, label="Customer Name")
     reg_no = forms.CharField(max_length=64, required=False, label="Registration No.")
     engine_no = forms.CharField(max_length=64, required=False, label="Engine No.")
@@ -43,10 +30,8 @@ class EditParsedDataForm(forms.Form):
     due_date = forms.CharField(max_length=64, required=False, label="Due Date")
     signatory = forms.CharField(max_length=255, required=False, label="Signatory")
 
-    # add or remove fields depending on the placeholders in your Word docx template
 
 
-# 🧩 4️⃣ Certificate template upload form (admin or management use)
 class TemplateUploadForm(forms.ModelForm):
     class Meta:
         model = CertificateTemplate
@@ -55,3 +40,51 @@ class TemplateUploadForm(forms.ModelForm):
             'name': 'Template Name',
             'file': 'Upload Template (.docx)',
         }
+
+
+
+WORKFLOW_CHOICES = (
+    ('installation', 'Installation/De-installation Certificate'),
+)
+
+class UnifiedCertificateUploadForm(forms.Form):
+    workflow_type = forms.ChoiceField(
+        choices=WORKFLOW_CHOICES,
+        label="Certificate Type",
+        widget=forms.RadioSelect
+    )
+    pdf_file = forms.FileField(
+        required=False,
+        label="PDF (required for Installation & de-installation)"
+    )
+    certificate_docx = forms.FileField(
+        required=True,
+        label="Certificate DOCX Template"
+    )
+    start_number = forms.IntegerField(
+        required=False,
+        label="Certificate Number (optional)",
+        help_text="If not provided, system auto-generates the next number"
+    )
+
+
+class ImeiUpdateForm(forms.ModelForm):
+    class Meta:
+        model = GeneratedCertificate
+        fields = ['imei_1', 'imei_2']
+        widgets = {
+            'imei_1': forms.TextInput(attrs={'maxlength': 15, 'class': 'form-control'}),
+            'imei_2': forms.TextInput(attrs={'maxlength': 15, 'class': 'form-control'}),
+        }
+
+    def clean_imei_1(self):
+        imei = self.cleaned_data.get('imei_1')
+        if imei:
+            return imei.strip()
+        return ""
+
+    def clean_imei_2(self):
+        imei = self.cleaned_data.get('imei_2')
+        if imei:
+            return imei.strip()
+        return ""
